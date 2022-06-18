@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html>
+<meta charset="utf-8" />
+
+<head>
+	<link rel="stylesheet" href="https://unpkg.com/leaflet@1.6.0/dist/leaflet.css" />
+	<script src="https://unpkg.com/leaflet@1.6.0/dist/leaflet.js"></script>
+	<script type="text/javascript"
+		src="D:\UNIVERSIDAD\SEMESTRE_9\LINEA_DE_PROFUNDIZACION_B\GeoJson_Ejercicio_4\countries.js"></script>
+	<script type="text/javascript"
+		src="D:\UNIVERSIDAD\SEMESTRE_9\LINEA_DE_PROFUNDIZACION_B\GeoJson_Ejercicio_4\cities.js"></script>
+	<script type="text/javascript"
+		src="D:\UNIVERSIDAD\SEMESTRE_9\LINEA_DE_PROFUNDIZACION_B\GeoJson_Ejercicio_4\hidro.js"></script>
+	<script type="text/javascript"
+		src="D:\UNIVERSIDAD\SEMESTRE_9\LINEA_DE_PROFUNDIZACION_B\GeoJson_Ejercicio_4\depa.js"></script>
+
+	<link rel="stylesheet" href="MarkerCluster.css" />
+	<link rel="stylesheet" href="MarkerCluster.Default.css" />
+	<script type="text/javascript" src="leaflet.markercluster.js"></script>
+
+	<link rel="stylesheet" href="Control.MiniMap.min.css" />
+	<script type="text/javascript" src="Control.MiniMap.min.js"></script>
+
+	<!-- Estilo para visualizar en la pagina web -->
+
+
+	<style>
+		#map {
+			width: 100%;
+			height: 800px;
+			box-shadow: 5px 5px 5px #888;
+		}
+	</style>
+
+</head>
+
+<body>
+	<div id="map"></div>
+
+	<script>
+		var osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+			attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a>'
+
+				+ 'contributors', maxZoom: 18
+
+		});
+
+		var ciudades = L.tileLayer.wms("http://localhost:8080/geoserver/wms", {
+			layers: 'ciudades',
+			format: 'image/png',
+			transparent: true,
+			tiled: true,
+			attribution: "Natural Earth"
+
+		});
+
+		var hidrografia = L.tileLayer.wms("http://localhost:8080/geoserver/wms", {
+			layers: 'hidrografia',
+			format: 'image/png',
+			transparent: true,
+			tiled: true,
+			attribution: "Natural Earth"
+
+		});
+
+		var pais = L.tileLayer.wms("http://localhost:8080/geoserver/wms", {
+			layers: 'paises',
+			format: 'image/png',
+			transparent: true,
+			tiled: true,
+			attribution: "Natural Earth"
+
+		});
+
+		var countryStylev1 = {
+			'color': "#0E00E2",
+			'weight': 2,
+			'opacity': 0.6
+		};
+
+		var citiesStyle = {
+			'color': "#0E00E2",
+			'weight': 2,
+			'opacity': 0.6
+		};
+
+		function getColorcountry(d) {
+			return d > 100000000 ? '#800026' :
+				d > 50000000 ? '#BD0026' :
+					d > 20000000 ? '#E31A1C' :
+						d > 10000000 ? '#FC4E2A' :
+							d > 5000000 ? '#FD8D3C' :
+								d > 2000000 ? '#FEB24C' :
+									d > 1000000 ? '#FED976' :
+										'#FFEDA0';
+		};
+
+
+		function getColordepa(d) {
+			return d < 27500000000 ? '#D5F5E3' :
+				d < 55000000000 ? '#82E0AA ' :
+					d < 82500000000 ? '#28B463 ' :
+						d < 110000000000 ? '#186A3B ' :
+							'#082F09';
+		};
+
+		function getColorcities(d) {
+			return d = 'Capital' ? '#4B3FFF' :
+
+				'#B9B9B9';
+		};
+
+		function citiesStyle(feature) {
+			return {
+				fillColor: getColorcities(feature.properties.SHAPE_LEN),
+				weight: 2,
+				opacity: 1,
+				color: 'white',
+				dashArray: '3',
+				fillOpacity: 0.7
+			};
+		}
+
+		function depaStyle(feature) {
+			return {
+				fillColor: getColordepa(feature.properties.SHAPE_AREA),
+				weight: 2,
+				opacity: 1,
+				color: 'white',
+				dashArray: '3',
+				fillOpacity: 0.7
+			};
+		}
+
+
+		function countryStylev2(feature) {
+			return {
+				fillColor: getColorcountry(feature.properties.pop_est),
+				weight: 2,
+				opacity: 1,
+				color: 'white',
+				dashArray: '3',
+				fillOpacity: 0.7
+			};
+		}
+
+		function popup(feature, layer) {
+			if (feature.properties && feature.properties.name) {
+				layer.bindPopup('PAIS: ' + feature.properties.name + '<br>' + 'POBLACION: ' + feature.properties.pop_est);
+			}
+		}
+
+		var markers = L.markerClusterGroup();
+
+		//================ SIMBOLOS =====================//
+
+		var icon_Capital = L.icon({
+			iconUrl: 'https://cdn.icon-icons.com/icons2/1483/PNG/128/wifihome_102155.png',
+			iconSize: [20, 20],
+			popupAnchor: [-1, -10]
+		});
+
+		var icon_Ciudad = L.icon({
+			iconUrl: 'https://cdn.icon-icons.com/icons2/2093/PNG/128/park_architecture_and_city_leisure_trees_landscape_nature_icon_128584.png',
+			iconSize: [20, 20],
+			popupAnchor: [-1, -10]
+		});
+
+		function estiloMarker(feature, latlng) {
+
+			return feature.properties.capital == 'S' ? markers.addLayer(L.marker(latlng, {
+				icon: icon_Capital,
+				draggable: false,
+				title: "Clic para el Detalle"
+			})).bindPopup('<b>Ciudad:</b> ' + feature.properties.ciudad) :
+				markers.addLayer(L.marker(latlng, {
+					icon: icon_Ciudad,
+					draggable: false,
+					title: "Clic para el Detalle"
+				})).bindPopup('<b>Ciudad:</b> ' + feature.properties.ciudad);
+		};
+
+		//=======================//
+
+
+
+		var map = L.map('map', {
+			center: [1.614433, -75.609455],
+			zoom: 5,
+			layers: [osm],
+
+			scrollWheelZoom: true
+		});
+
+		var countries_js = L.geoJson(countries,
+			{
+				style: countryStylev2,
+				onEachFeature: popup
+
+			}
+		).addTo(map);
+
+		var cities_js = L.geoJson(cities,
+			{
+				style: citiesStyle,
+				pointToLayer: estiloMarker
+
+			}
+		).addTo(map);
+
+
+		var depa_js = L.geoJson(depa,
+			{
+				style: depaStyle
+
+			}
+		).addTo(map);
+
+		L.control.scale({
+			position: 'bottomright',
+			imperial: false
+
+
+		}).addTo(map);
+
+		var baseMaps = {
+			"OpenStreetMap": osm
+		};
+		var overlayMaps = {
+			"<img src='https://cdn-icons-png.flaticon.com/512/2947/2947698.png' height=15px, width=15px /> Paises": countries_js,
+			"<img src='https://cdn-icons.flaticon.com/png/512/1311/premium/1311928.png?token=exp=1655524524~hmac=88964b13cfe080046cc3027ed88ccd2f' height=15px, width=15px /> Departamentos": depa_js,
+			"<img src='https://cdn-icons.flaticon.com/png/512/4284/premium/4284999.png?token=exp=1655524646~hmac=d90d6a41b0177cca943cf33f98115521' height=15px, width=15px /> Ciudades": cities_js
+		};
+
+		L.control.layers(baseMaps, overlayMaps).addTo(map);
+
+		var osm2 = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+			attribution: '&copy; <a href="http://osm.org/copyright%22%3EOpenStreetMap</a>'
+				+ 'contributors',
+			maxZoom: 18
+		});
+
+		var miniMap = new L.Control.MiniMap(osm2,
+			{
+				toggleDisplay: true,
+				minimized: false,
+				position: "bottomright"
+			}
+		).addTo(map);
+
+	</script>
+</body>
+
+</html>
